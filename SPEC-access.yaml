@@ -1,0 +1,69 @@
+---
+# SSH2Influx work definition file based on YAML 1.1 spec
+# https://yaml.org/spec/1.1/
+# Define the hosts to be polled under an [inventory][hosts] branch.
+# Hosts can have specific commands with a subordinate commands list;
+# [inventory][vars][globalcommands] will be used for all entries
+
+
+# Example of inventory with a host-specific set of commands and
+# one host that only has globalcommands
+# [note: both get global commands]
+#
+# inventory:
+#  hosts:
+#    - host: NOC-MBCC-SSO-1
+#      commands:
+#        - cmd: show ver
+#          parsespec: 1001
+#        - cmd: show clock
+#          parsespec: 1002
+#    - host: NOC-KEYNOTE-SSO-1
+
+inventory:
+  credential_set: DefaultCredentials
+  hosts:
+    - host: office-sw
+      commands:
+      - cmd: show version
+        parsespec: 101
+    - host: ubuntu-2
+      commands:
+      - cmd: w
+        parsespec: 201
+
+  groupcommands:
+
+parsespecs:
+  - parsespec: 101
+    matchtype: iterative
+    measurement: inventory
+    regexmatches:
+      - regex: >-
+          Model number                    : (.*?)\n
+        groupname: model
+        groupfieldtype: key
+        groupdatatype: string
+      - regex: >-
+          System serial number            : (.*?)\n
+        groupname: serial_number
+        groupfieldtype: key
+        groupdatatype: string
+  - parsespec: 201
+    matchtype: single
+    regex: >-
+      load average: ([\d\.]+), ([\d\.]+), ([\d\.]+)
+    measurement: performance
+    statictags:
+      - tagname: wncdInstance
+        tagvalue: wncd_0
+    match1: 1min_avg
+    match1fieldtype: key
+    match1datatype: decimal
+    match2: 5min_avg
+    match2fieldtype: key
+    match2datatype: decimal
+    match3: 15min_avg
+    match3fieldtype: key
+    match3datatype: decimal
+
