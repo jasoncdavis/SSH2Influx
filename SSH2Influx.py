@@ -327,18 +327,18 @@ def extract_matches(parsespecs, aggregate_output):
                 print('DEBUG: Match spec being used is:')
                 pprint.pprint(parsespec)
             measurement = [output[0], parsespec["measurement"]]
+            if DEBUG: print(f'DEBUG: Measurement currently: {measurement}')
+
             statictags = parsespec.get("statictags")
+            if statictags:
+                if DEBUG: print(f'DEBUG extract_matches(iterative): Static tags are: {statictags}')
+                for statictag in statictags:
+                    tagname = statictag.get("tagname")
+                    tagvalue = statictag.get("tagvalue")
+                    measurement.append((tagname, 'tag', 'string',
+                                        tagvalue))
 
             if parsespec["matchtype"] == 'single':
-                measurement = [output[0], parsespec["measurement"]]
-                if statictags:
-                    if DEBUG: print(f'Static tags are: {statictags}')
-                    for statictag in statictags:
-                        measurement.append((statictag["tagname"],
-                                            'tag',
-                                            'string',
-                                            statictag["tagvalue"]))
-                if DEBUG: print(f'DEBUG: Measurement currently: {measurement}')
                 x = re.search(fr'{parsespec["regex"]}', output[3])
                 if x:
                     if DEBUG: print(f'DEBUG: Matching groups -  {x.groups()}')
@@ -359,23 +359,17 @@ def extract_matches(parsespecs, aggregate_output):
                     measurements.append(measurement)
 
             elif parsespec["matchtype"] == 'multiple':
-                x = re.findall(fr'{parsespec["regex"]}', output[3],
+                if DEBUG: print(f'DEBUG: regex pattern is:\n{parsespec["regex"]}')
+                if DEBUG: print(f'DEBUG: output to search is:\n{output[3]}')
+                matches = re.findall(fr'{parsespec["regex"]}', output[3],
                                re.S | re.M)
-                if DEBUG: print(f'DEBUG: Groups matching are:\n{x}')
-                for matcheditem in x:
-                    if statictags:
-                        if DEBUG: print(f'Static tags are: {statictags}')
-                        for statictag in statictags:
-                            if 'value' not in statictag:
-                                tagname = f'match["{statictag}"]'
-                                tagvalue = f'match["{statictag}value"]'
-                                measurement.append((eval(tagname),
-                                                    'tag',
-                                                    'string',
-                                                    eval(tagvalue)))
+                if DEBUG: print(f'DEBUG: Groups matching are:\n{matches}')
+                for matcheditem in matches:
                     if DEBUG: print(f'DEBUG: Processing item: {matcheditem}')
+                    # Reset measurement for each instance (only multiple)
                     measurement = [output[0], parsespec["measurement"]]
                     for index, item in enumerate(matcheditem, start=1):
+                        # Get individual match data
                         matchname = f'parsespec["match{index}"]'
                         matchfieldtype = f'parsespec["match{index}fieldtype"]'
                         matchdatatype = f'parsespec["match{index}datatype"]'
@@ -390,29 +384,26 @@ def extract_matches(parsespecs, aggregate_output):
                                             eval(matchdatatype),
                                             eval(matchvalue)))
                     measurements.append(measurement)
-                    if DEBUG:
-                        print('DEBUG: Current measurements are:')
-                        pprint.pprint(measurements)
-
+                if DEBUG:
+                    print('DEBUG: Current measurements are:')
+                    pprint.pprint(measurements)
+                            
             elif parsespec["matchtype"] == 'iterative':
                 measurement = [output[0], parsespec["measurement"]]
-                if statictags:
-                    if DEBUG: print(f'Static tags are: {statictags}')
-                    for statictag in statictags:
-                        tagname = statictag.get("tagname")
-                        tagvalue = statictag.get("tagvalue")
-                        measurement.append((tagname, 'tag', 'string',
-                                            tagvalue))
-                if DEBUG: pprint.pprint(measurement)
+                if DEBUG:
+                    print(f'DEBUG extract_matches(iterative): Current measurement is:')
+                    pprint.pprint(measurement)
                 regexmatches = parsespec["regexmatches"]
                 for groupspec in regexmatches:
-                    if DEBUG: pprint.pprint(groupspec)
+                    if DEBUG:
+                        print(f'DEBUG extract_matches(iterative): Current groupspec is:')
+                        pprint.pprint(groupspec)
                     # See if we have a multimatch group - special handling
                     if "groups" in groupspec:
                         x = re.findall(fr'{groupspec["regex"]}',
                                        output[3])
                         # TO-DO: Add logic for no match
-                        if DEBUG: print(x)
+                        if DEBUG: print(f'DEBUG: group match(es) is/are:\n {x}')
                         # for groupmatch in groupspec["groups"]:
                         for count, match in enumerate(x):
                             measurement.append((groupspec["groups"][count]["groupname"],
@@ -426,30 +417,34 @@ def extract_matches(parsespecs, aggregate_output):
                         if x == None:
                             print(f'WARNING: No match of [{groupspec["regex"]}] on {output[0]} - skipping')
                             continue
-                        if DEBUG: print(x.group(1))
+                        if DEBUG: print(f'DEBUG groupmatch is: {x.group(1)}')
                         measurement.append((groupspec["groupname"],
                                             groupspec["groupfieldtype"],
                                             groupspec["groupdatatype"],
                                             x.group(1).strip()))
-                    measurements.append(measurement)
+                measurements.append(measurement)
     return measurements
 
 
 def assemble_influx_lp(measurements):
     # Take list of measurements and assemble into Influx Line Protocol
-    if DEBUG: print(f'DEBUG: Measurements to process:\n{measurements}')
+    if DEBUG: print(f'DEBUG assemble_influx_lp: Measurements to process:\n{measurements}')
     influxlines = ""
     for item in measurements:
+        if DEBUG: print(f'DEBUG assemble_influx_lp: Working item:\n{item}')
         device = item.pop(0)
         measurement = item.pop(0)
-        # if DEBUG: print(measurement)
-        # if DEBUG: print(item)
         mtags = [x for x in item if x[1] == 'tag']
         mkeys = [x for x in item if x[1] == 'key']
         if DEBUG: print(f'Tags: {mtags}\nKeys: {mkeys}')
         influxline = f'{measurement},device={device},'
         for mtagitem in mtags:
-            influxline += f'{mtagitem[0]}={mtagitem[3]},'
+            tagkey = f'{mtagitem[0]}={mtagitem[3]}'.replace(' ', '\ ')
+            # print(f'|{tagkey}|')
+            nonspacestr = re.sub(r'(\\\s){2,}', "", tagkey)
+            if nonspacestr.endswith('\ '):
+                nonspacestr = nonspacestr.replace('\ ', '')
+            influxline += nonspacestr + ','
         influxline = influxline.rstrip(',')
         influxline += ' '
         for mkeyitem in mkeys:
@@ -460,9 +455,9 @@ def assemble_influx_lp(measurements):
                 # if float, int, boolean, decimal
                 influxline += f'{mkeyitem[0]}={mkeyitem[3]},'
         influxline = influxline.rstrip(',')
-        if DEBUG: print(influxline)
+        if DEBUG: print(f'DEBUG assemble_influx_lp: current influxline - {influxline}')
         influxlines += influxline + '\n'
-    if DEBUG: print(influxlines)
+    if DEBUG: print(f'DEBUG assemble_influx_lp: influxlines are\n{influxlines}')
     return influxlines
 
 
@@ -483,6 +478,8 @@ def send_to_influx(influxenv, measurements):
                                     data=measurements)
         response.raise_for_status()
         print(f'{response.status_code} - {response.reason} - {response.text}')
+        if response.status_code == 204:
+            print('Good data push to InfluxDB')
     except requests.exceptions.HTTPError as errh:
         print("Http Error:", errh)
     except requests.exceptions.ConnectionError as errc:

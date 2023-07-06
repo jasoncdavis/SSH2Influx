@@ -3,7 +3,7 @@
 # https://yaml.org/spec/1.1/
 # Define the hosts to be polled under an [inventory][hosts] branch.
 # Hosts can have specific commands with a subordinate commands list;
-# [inventory][vars][globalcommands] will be used for all entries
+# [inventory][groupcommands] will be used for all entries
 
 
 # Example of inventory with a host-specific set of commands and
@@ -12,40 +12,44 @@
 #
 # inventory:
 #  hosts:
-#    - host: NOC-MBCC-SSO-1
+#    - host: device-1
 #      commands:
 #        - cmd: show ver
 #          parsespec: 1001
 #        - cmd: show clock
 #          parsespec: 1002
-#    - host: NOC-KEYNOTE-SSO-1
+#    - host: device-2
 
 inventory:
   credential_set: DefaultCredentials
   hosts:
-    - host: office-sw
     - host: sandbox-iosxe-latest-1
     - host: sandbox-iosxe-recomm-1
     - host: sandbox-iosxr-1
 
   groupcommands:
-    - cmd: show version
-      parsespec: 101
+    # Note: using a quoted string here since I'm inserting a trailing space
+    - cmd: "show proc cpu sorted | include IP "
+      parsespec: 201
 
 parsespecs:
-  - parsespec: 101
-    measurement: inventory
-    matchtype: single
-    statictags:
-      - tagname: statictag1
-        tagvalue: tag1
-      - tagname: statictag2
-        tagvalue: tag2
+  - parsespec: 201
+    measurement: process-table
+    matchtype: multiple
     regex: >-
-      (\S+) uptime is (.*tes)
-    match1: hostname
+      \s+(\d+)\s+\d+\s+\d+\s+\d+\s+([\d\.]+)%\s+([\d\.]+)%\s+([\d\.]+)%\s+\d+\s([\w\- ]+)
+    match1: pid
     match1fieldtype: tag
-    match1datatype: string
-    match2: uptime
+    match1datatype: integer
+    match2: CPU5Sec
     match2fieldtype: key
-    match2datatype: string
+    match2datatype: decimal
+    match3: CPU1Min
+    match3fieldtype: key
+    match3datatype: decimal
+    match4: CPU5Min
+    match4fieldtype: key
+    match4datatype: decimal
+    match5: ProcessName
+    match5fieldtype: tag
+    match5datatype: string
