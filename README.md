@@ -12,14 +12,13 @@
 <br />
 <div align="center">
   <a href="https://github.com/jasoncdavis/SSH2Influx">
-    <img src="images/logo-SSH2Influx.png" alt="Logo" width="80" height="80">
+    <img src="images/logo-SSH2Influx.png" alt="Logo" width="300" height="160">
   </a>
 
 <h3 align="center">SSH2Influx</h3>
 
   <p align="center">
     Convert CLI-based data from SSH-accessible endpoints into InfluxDB measurements for graphing and dashboards!
-
     <br />
     <a href="https://github.com/jasoncdavis/SSH2Influx"><strong>Explore the docs »</strong></a>
     <br />
@@ -31,7 +30,6 @@
     <a href="https://github.com/jasoncdavis/SSH2Influx/issues">Request Feature</a>
   </p>
 </div>
-
 
 
 <!-- TABLE OF CONTENTS -->

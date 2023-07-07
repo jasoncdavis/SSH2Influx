@@ -63,7 +63,7 @@ class SSHTarget:
         self.username = info["username"]
         self.password = info["password"]
         self.commands = info["commands"]
-        print(f'\n\n=====Learning device: {self.alias}')
+        # print(f'\n\n=====Learning device: {self.alias}')
         self.server_version, self.prompt = self.get_prompt(self.mgmt,
             self.username,
             self.password)
@@ -184,7 +184,7 @@ class SSHTarget:
             return output_records
 
     def run_commands(self):
-        print(f'\n\n=====Collecting commands for device: {self.alias}')
+        #print(f'\n\n=====Collecting commands for device: {self.alias}')
 
         try:
             return asyncio.run(self._run_command())
@@ -297,6 +297,7 @@ def get_run_specs(args):
     if DEBUG: print(f'\nDEBUG=====Work list\n{worklist}')
 
     # Do initial connections and prompt determination with devices
+    print('\n=====Learning device prompts')
     inventory = {item["hostalias"]: SSHTarget(item) for item in worklist}
     if DEBUG: print(f'\nDEBUG=====Inventory\n{inventory}')
 
@@ -311,13 +312,14 @@ def get_run_specs(args):
 def extract_matches(parsespecs, aggregate_output):
     # Use the specs input to do pattern matches against the output
     measurements = []
+    print(f'\n\n=====Processing output of hosts...')
 
     if DEBUG:
         print('DEBUG: Aggregate output is:')
         pprint.pprint(aggregate_output)
     for device_results in aggregate_output:
         for output in device_results:
-            print(f'\n\n=====Processing output of device: {output[0]}')
+            print(f'Processing: {output[0]}')
             if DEBUG: print(f'\nDEBUG: Working on device <{output[0]}> '
                             f'for command <{output[1]}> '
                             f'with parsespec <{output[2]}>')
@@ -344,17 +346,17 @@ def extract_matches(parsespecs, aggregate_output):
                     if DEBUG: print(f'DEBUG: Matching groups -  {x.groups()}')
                     for index, item in enumerate(x.groups(), start=1):
                         matchname = f'parsespec["match{index}"]'
-                        matchfieldtype = f'parsespec["match{index}fieldtype"]'
-                        matchdatatype = f'parsespec["match{index}datatype"]'
+                        matchkeytype = f'parsespec["match{index}keytype"]'
+                        matchvaluetype = f'parsespec["match{index}valuetype"]'
                         matchvalue = f'{item}'
                         # print(key, keytype)
                         if DEBUG: print(f'DEBUG: Tag |{eval(matchname)}|'
-                                        f'is a |{eval(matchfieldtype)}| '
-                                        f'of type {eval(matchdatatype)} '
+                                        f'is a |{eval(matchkeytype)}| '
+                                        f'of type {eval(matchvaluetype)} '
                                         f'with value: |{matchvalue}|')
                         measurement.append((eval(matchname),
-                                            eval(matchfieldtype),
-                                            eval(matchdatatype),
+                                            eval(matchkeytype),
+                                            eval(matchvaluetype),
                                             matchvalue))
                     measurements.append(measurement)
 
@@ -371,17 +373,17 @@ def extract_matches(parsespecs, aggregate_output):
                     for index, item in enumerate(matcheditem, start=1):
                         # Get individual match data
                         matchname = f'parsespec["match{index}"]'
-                        matchfieldtype = f'parsespec["match{index}fieldtype"]'
-                        matchdatatype = f'parsespec["match{index}datatype"]'
+                        matchkeytype = f'parsespec["match{index}keytype"]'
+                        matchvaluetype = f'parsespec["match{index}valuetype"]'
                         matchvalue = f'matcheditem[{index - 1}]'
                         # print(key, keytype)
                         if DEBUG: print(f'DEBUG:    Tag |{eval(matchname)}| '
-                                        f'is a |{eval(matchfieldtype)}| '
-                                        f'of type {eval(matchdatatype)} '
+                                        f'is a |{eval(matchkeytype)}| '
+                                        f'of type {eval(matchvaluetype)} '
                                         f'with value: |{eval(matchvalue)}|')
                         measurement.append((eval(matchname),
-                                            eval(matchfieldtype),
-                                            eval(matchdatatype),
+                                            eval(matchkeytype),
+                                            eval(matchvaluetype),
                                             eval(matchvalue)))
                     measurements.append(measurement)
                 if DEBUG:
@@ -407,8 +409,8 @@ def extract_matches(parsespecs, aggregate_output):
                         # for groupmatch in groupspec["groups"]:
                         for count, match in enumerate(x):
                             measurement.append((groupspec["groups"][count]["groupname"],
-                                                groupspec["groups"][count]["groupfieldtype"],
-                                                groupspec["groups"][count]["groupdatatype"],
+                                                groupspec["groups"][count]["groupkeytype"],
+                                                groupspec["groups"][count]["groupvaluetype"],
                                                 match.strip()))
                     else:
                         # Regular processing
@@ -419,8 +421,8 @@ def extract_matches(parsespecs, aggregate_output):
                             continue
                         if DEBUG: print(f'DEBUG groupmatch is: {x.group(1)}')
                         measurement.append((groupspec["groupname"],
-                                            groupspec["groupfieldtype"],
-                                            groupspec["groupdatatype"],
+                                            groupspec["groupkeytype"],
+                                            groupspec["groupvaluetype"],
                                             x.group(1).strip()))
                 measurements.append(measurement)
     return measurements
@@ -435,8 +437,8 @@ def assemble_influx_lp(measurements):
         device = item.pop(0)
         measurement = item.pop(0)
         mtags = [x for x in item if x[1] == 'tag']
-        mkeys = [x for x in item if x[1] == 'key']
-        if DEBUG: print(f'Tags: {mtags}\nKeys: {mkeys}')
+        mfields = [x for x in item if x[1] == 'field']
+        if DEBUG: print(f'Tags: {mtags}\nKeys: {mfields}')
         influxline = f'{measurement},device={device},'
         for mtagitem in mtags:
             tagkey = f'{mtagitem[0]}={mtagitem[3]}'.replace(' ', '\ ')
@@ -447,13 +449,13 @@ def assemble_influx_lp(measurements):
             influxline += nonspacestr + ','
         influxline = influxline.rstrip(',')
         influxline += ' '
-        for mkeyitem in mkeys:
+        for mfielditem in mfields:
             # if string
-            if mkeyitem[2] == 'string':
-                influxline += f'{mkeyitem[0]}="{mkeyitem[3]}",'
+            if mfielditem[2] == 'string':
+                influxline += f'{mfielditem[0]}="{mfielditem[3]}",'
             else:
                 # if float, int, boolean, decimal
-                influxline += f'{mkeyitem[0]}={mkeyitem[3]},'
+                influxline += f'{mfielditem[0]}={mfielditem[3]},'
         influxline = influxline.rstrip(',')
         if DEBUG: print(f'DEBUG assemble_influx_lp: current influxline - {influxline}')
         influxlines += influxline + '\n'
@@ -498,6 +500,7 @@ def main_loop(worklist, inventory, parse_specs, influxenv):
     #   respond
     startTime = time.time()
     command_results = []
+    print(f'\n=====Collecting commands for hosts...')
     for item in worklist:
         command_results.append(inventory[item['hostalias']].run_commands())
 
@@ -505,7 +508,7 @@ def main_loop(worklist, inventory, parse_specs, influxenv):
     measurements = extract_matches(parse_specs, command_results)
     if DEBUG: print(measurements)
     influx_lines = assemble_influx_lp(measurements)
-    print(f'Final influx write line output is:\n{influx_lines}')
+    print(f'\nCOMPLETE with command processing - Final influx write line output is:\n{influx_lines}')
     
     # Send to Influx
     if not DEBUG:
@@ -513,7 +516,7 @@ def main_loop(worklist, inventory, parse_specs, influxenv):
     executionTime = (time.time() - startTime)
     print(f'Execution time in seconds: {executionTime:.3f}')
     
-    print('\nRunning a sleep loop.', end='', flush=True)
+    print(f'\nWaiting {FREQUENCY} seconds until next poll.', end='', flush=True)
 
 
 def run_threaded(job_func, worklist, inventory, parse_specs, influxenv):
@@ -533,6 +536,7 @@ if __name__ == '__main__':
     args = get_arguments()
 
     DEBUG = args.debug
+    FREQUENCY = args.frequency
     print(f'Starting script {os.path.basename(__file__)} with '
           f'parameters file "{args.paramfile}" at {execstartTime} '
           f'with DEBUG {DEBUG}')
@@ -550,8 +554,6 @@ if __name__ == '__main__':
                                               inventory,
                                               parse_specs,
                                               influxenv)
-
-    print('\nRunning a sleep loop.', end='', flush=True)
 
     try:
         while True:

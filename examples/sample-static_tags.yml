@@ -20,6 +20,17 @@
 #          parsespec: 1002
 #    - host: device-2
 
+# This example has a parsing specification with static tags.
+# Tags can be used to provide extra filtering items that reflect
+# your needs - buildings, regions, device status (production, devtest).
+# Every resulting influx measurement in this parsespec will receive the 
+# same static tag(s)
+#
+# Example output
+#inventory,device=sandbox-iosxe-latest-1,hostname=Cat8000V uptime="30 minutes"
+#inventory,device=sandbox-iosxe-recomm-1,hostname=csr1000v-1 uptime="1 day, 4 hours, 34 minutes"
+#inventory,device=sandbox-iosxr-1,hostname=System uptime="4 days 32 minutes"
+
 inventory:
   credential_set: DefaultCredentials
   hosts:
@@ -35,11 +46,16 @@ parsespecs:
   - parsespec: 101
     measurement: inventory
     matchtype: single
+    statictags:
+      - tagname: location
+        tagvalue: DevNet Sandbox
+      - tagname: Function
+        tagvalue: Training
     regex: >-
       (\S+) uptime is (.*tes)
     match1: hostname
-    match1keytype: tag
-    match1valuetype: string
+    match1fieldtype: tag
+    match1datatype: string
     match2: uptime
-    match2keytype: field
-    match2valuetype: string
+    match2fieldtype: key
+    match2datatype: string

@@ -39,17 +39,17 @@ parsespecs:
     regex: >-
       \s+(\d+)\s+\d+\s+\d+\s+\d+\s+([\d\.]+)%\s+([\d\.]+)%\s+([\d\.]+)%\s+\d+\s([\w\- ]+)
     match1: pid
-    match1fieldtype: tag
-    match1datatype: integer
+    match1keytype: tag
+    match1valuetype: integer
     match2: CPU5Sec
-    match2fieldtype: key
-    match2datatype: decimal
+    match2keytype: field
+    match2valuetype: decimal
     match3: CPU1Min
-    match3fieldtype: key
-    match3datatype: decimal
+    match3keytype: field
+    match3valuetype: decimal
     match4: CPU5Min
-    match4fieldtype: key
-    match4datatype: decimal
+    match4keytype: field
+    match4valuetype: decimal
     match5: ProcessName
-    match5fieldtype: tag
-    match5datatype: string
+    match5keytype: tag
+    match5valuetype: string

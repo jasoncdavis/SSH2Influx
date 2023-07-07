@@ -46,18 +46,18 @@ parsespecs:
       - regex: >-
           ([-\w]+) uptime is .*?minutes
         groupname: hostname
-        groupfieldtype: tag
-        groupdatatype: string
+        groupkeytype: tag
+        groupvaluetype: string
       - regex: >-
           [-\w]+ uptime is (.*?minutes)
         groupname: uptime
-        groupfieldtype: key
-        groupdatatype: string
+        groupkeytype: field
+        groupvaluetype: string
       - regex: >-
           Last reload reason: (.*?)\n
         groupname: reloadreason
-        groupfieldtype: key
-        groupdatatype: string
+        groupkeytype: field
+        groupvaluetype: string
   - parsespec: 302
     measurement: traffic
     matchtype: iterative
@@ -66,20 +66,20 @@ parsespecs:
           (\d+) checksum errors
         groups:
           - groupname: IPstats-checksumerr-rx
-            groupfieldtype: key
-            groupdatatype: integer
+            groupkeytype: field
+            groupvaluetype: integer
           - groupname: ICMPstats-checksumerr-rx
-            groupfieldtype: key
-            groupdatatype: integer
+            groupkeytype: field
+            groupvaluetype: integer
           - groupname: UDPstats-checksumerr-rx
-            groupfieldtype: key
-            groupdatatype: integer
+            groupkeytype: field
+            groupvaluetype: integer
           - groupname: OSPFstats-checksumerr-rx
-            groupfieldtype: key
-            groupdatatype: integer
+            groupkeytype: field
+            groupvaluetype: integer
           - groupname: TCPstats-checksumerr-rx
-            groupfieldtype: key
-            groupdatatype: integer
+            groupkeytype: field
+            groupvaluetype: integer
           - groupname: IPMv2-checksumerr-total
-            groupfieldtype: key
-            groupdatatype: integer
+            groupkeytype: field
+            groupvaluetype: integer
