@@ -1,0 +1,56 @@
+#optionsconfig.yaml
+#Configuration options for DevNet Dashboards project - contains target endpoint names/IPs, credentials, etc.
+
+# InfluxDB database for storing timeseries data
+InfluxDB:
+  host: CHANGEME
+  alias: CHANGEME
+  protocol: http
+  port: 8086
+  token: 'CHANGEME=='
+  bucket: CHANGEME
+  org: CHANGEME
+
+
+# Authentication Groups
+DefaultCredentials:
+  username: admin
+  password: C1sco12345
+
+AlternativeCredentials1:
+  username: CHANGEME
+  password: CHANGEME
+
+# Device inventory - device-specific creds can be provided as:
+#
+# - mgmt_hostnameip: CHANGEME
+#   alias: CHANGEME
+#   username: CHANGEME
+#   password: CHANGEME
+#
+# Any device not containing a username, password spec will use the
+# 'DefaultCredentials' authentication group
+device_inventory:
+  # The following DevNet Sandbox device may have credentials that change
+  # check https://devnetsandbox.cisco.com/RM/Diagram/Index/7b4d4209-a17c-4bc3-9b38-f15184e53a94?diagramType=Topology
+  # or google search 'cisco devnet sandbox ios xe on catalyst latest code always on'
+  - mgmt_hostnameip: sandbox-iosxe-latest-1.cisco.com
+    alias: sandbox-iosxe-latest-1
+    username: admin
+    password: C1sco12345
+
+  # The following DevNet Sandbox device may have credentials that change
+  # check https://devnetsandbox.cisco.com/RM/Diagram/Index/27d9747a-db48-4565-8d44-df318fce37ad?diagramType=Topology
+  # or google search 'cisco devnet sandbox ios xe on CSR recommended code always on'
+  - mgmt_hostnameip: sandbox-iosxe-recomm-1.cisco.com
+    alias: sandbox-iosxe-recomm-1
+    username: developer
+    password: lastorangerestoreball8876
+
+  # The following DevNet Sandbox device may have credentials that change
+  # check https://devnetsandbox.cisco.com/RM/Diagram/Index/e83cfd31-ade3-4e15-91d6-3118b867a0dd?diagramType=Topology
+  # or google search 'cisco devnet sandbox ios xr programmability always on'
+  - mgmt_hostnameip: sandbox-iosxr-1.cisco.com
+    alias: sandbox-iosxr-1
+    username: admin
+    password: C1sco12345

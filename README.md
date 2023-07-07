@@ -12,7 +12,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/jasoncdavis/SSH2Influx">
-    <img src="images/logo-SSH2Influx.png" alt="Logo" width="300" height="160">
+    <img src="images/logo-SSH2Influx.png" alt="Logo" width="320" height="160">
   </a>
 
 <h3 align="center">SSH2Influx</h3>
@@ -20,11 +20,6 @@
   <p align="center">
     Convert CLI-based data from SSH-accessible endpoints into InfluxDB measurements for graphing and dashboards!
     <br />
-    <a href="https://github.com/jasoncdavis/SSH2Influx"><strong>Explore the docs »</strong></a>
-    <br />
-    <br />
-    <a href="https://github.com/jasoncdavis/SSH2Influx">View Demo</a>
-    ·
     <a href="https://github.com/jasoncdavis/SSH2Influx/issues">Report Bug</a>
     ·
     <a href="https://github.com/jasoncdavis/SSH2Influx/issues">Request Feature</a>
@@ -33,31 +28,28 @@
 
 
 <!-- TABLE OF CONTENTS -->
-<details>
-  <summary>Table of Contents</summary>
-  <ol>
-    <li>
-      <a href="#about-the-project">About The Project</a>
-      <ul>
-        <li><a href="#built-with">Built With</a></li>
-      </ul>
-    </li>
-    <li>
-      <a href="#getting-started">Getting Started</a>
-      <ul>
-        <li><a href="#prerequisites">Prerequisites</a></li>
-        <li><a href="#installation">Installation</a></li>
-        <li><a href="#configuration">Configuration</a></li>
-      </ul>
-    </li>
-    <li><a href="#usage">Usage</a></li>
-    <li><a href="#roadmap">Roadmap</a></li>
-    <li><a href="#contributing">Contributing</a></li>
-    <li><a href="#license">License</a></li>
-    <li><a href="#contact">Contact</a></li>
-    <li><a href="#acknowledgments">Acknowledgments</a></li>
-  </ol>
-</details>
+<ol>Table of Contents
+  <li>
+    <a href="#about-the-project">About The Project</a>
+    <ul>
+      <li><a href="#built-with">Built With</a></li>
+    </ul>
+  </li>
+  <li>
+    <a href="#getting-started">Getting Started</a>
+    <ul>
+      <li><a href="#prerequisites">Prerequisites</a></li>
+      <li><a href="#installation">Installation</a></li>
+      <li><a href="#configuration">Configuration</a></li>
+    </ul>
+  </li>
+  <li><a href="#usage">Usage</a></li>
+  <li><a href="#roadmap">Roadmap</a></li>
+  <li><a href="#contributing">Contributing</a></li>
+  <li><a href="#license">License</a></li>
+  <li><a href="#contact">Contact</a></li>
+  <li><a href="#acknowledgments">Acknowledgments</a></li>
+</ol>
 
 
 
@@ -151,10 +143,11 @@ We need a Python 3.7+ environment.  A virtual environment is also suggested.
 ### Configuration
 
 After installation we focus on setting up the necessary project files.  Two main files are necessary.
-* [optionsconfig.yaml](./optionsconfig.yaml)
+* *optionsconfig.yaml*
   
-  This YAML formatted file contains device inventory, credentials and Influx server information (with credentials).  Keep access to this file restricted, as it contains credential information.
-* parameters.yaml
+  This YAML formatted file contains device inventory, credentials and Influx server information (with credentials).  Keep access to this file restricted, as it contains credential information. An example is at [example-optionsconfig.yaml](./example-optionsconfig.yaml) - copy this file to optionsconfig.yaml, then edit it to reflect your InfluxDB server specifications and credentials.  Also add your inventory information. The DevNet Sandbox Always-On devices have been provided for getting started and familiarization with the project. You will eventually want to remove those 3 entries.
+
+* *parameters.yaml*
   
   This file can be renamed to suite your preference as the filename is passed as a command-line argument to the execution of SSH2Python.py.  It is in YAML format and contains non-confidential information about the job inventory, which may be a smaller subset of the main inventory in [optionsconfig.yaml](./optionsconfig.yaml).  It also defines an optional Influx server reference, so different job specifications can have different target Influx servers for storage. The regular expression matching patterns and tagging criteria for [Influx line protocol](https://docs.influxdata.com/influxdb/v2.7/reference/syntax/line-protocol/) also goes in this file. Examples for this file are in [examples/](./examples/) 
 
@@ -177,9 +170,9 @@ To elaborate, you start with a defined measurement name, follow it with a comma,
 
 Each measurement entry is appended to a group of entries.  Each entry also has the *device* static tag provided which maps to the device the command was executed on.  Other static and variable tags are defined in the parameters.yaml file.
 
-### Command execution
+### Host Command execution
 
-It is important to know the full commands desired for execution.  Do not rely on CLI shortcuts or interpreted variables.  It is suggested to execute the command(s) on a representative device manually to verify the command syntax and collect sample output for the next step of Regular Expression pattern matching.
+It is important to know the full commands desired for execution on the remote host.  Do not rely on CLI shortcuts or interpreted variables.  It is suggested to execute the command(s) on a representative device manually to verify the command syntax and collect sample output for the next step of Regular Expression pattern matching.
 
 ### Regular Expression (Regex) pattern matching
 
@@ -237,7 +230,7 @@ An example of a single match type parameters YAML file can be found as [examples
 
 A multiple regex match type processes through the command output in one pass, but assumes the same regex pattern match against multiple lines.  Therefore, multiple matches may be found and associated to the measurement group produced.  
 
-Consider a command output that has multiple line outputs (or records) related to similar items, such as CPUs, interfaces, processes, power supplies, etc.  A regex pattern could match against each item-record.  There could be several matching groups.
+Consider a command output that has multiple line outputs (or records) related to similar items, such as CPUs, interfaces, process lists, power supplies, etc.  A regex pattern could match against each item-record and extract the same capturing group(s) from each item-record or line.
 
 An example of a multiple match type parameters YAML file can be found as [examples/sample-multiple.yaml](./examples/sample-multiple.yml)
 
@@ -253,7 +246,7 @@ An example of this can be found as [examples/sample-iterative.yaml](./examples/s
 
 ## Usage
 
-The SSH2Influx.py program has command line help.
+The SSH2Influx.py program has command-line help. To access, run the following.
 
 ```sh
    cd SSH2Influx
@@ -261,7 +254,7 @@ The SSH2Influx.py program has command line help.
    python SSH2Influx -help
    ```
 
-results in output of...
+This results in useage help of...
 ```sh
    usage: SSH2Influx.py [-h] [-d] -p paramfile [-g group] [-f frequency]
 
@@ -278,55 +271,54 @@ results in output of...
                            Frequency (in seconds) to repeat collection (default of 300 seconds)
 ```
 
-The following is an example of using the provided [examples/sample-single.yaml](./examples/sample-single.yml)
+Debug mode (-p or --debug) is optional.
+Providing the parameter file is required.
+Providing the polling frequency is optional, but defaults to every 5 minutes.
+
+An example of usage with the provided [examples/sample-single.yaml](./examples/sample-single.yml) parameters file follows.
 
 ```sh
 (.venv) jason@macbook SSH2Influx % python SSH2Influx.py -p examples/sample-single.yml
-Starting script SSH2Influx.py with parameters file "examples/sample-single.yml" at 2023-07-06 13:46:18.495768 with DEBUG False
-Using project-wide Influx server: CHANGEME
+Starting script SSH2Influx.py with parameters file "examples/sample-single.yml" at 2023-07-07 16:01:32.782917 with DEBUG False
+Using project-wide Influx server: influxdb
 
-=====Learning device: sandbox-iosxe-latest-1
+=====Learning device prompts
 sandbox-iosxe-latest-1 initialized
-
-=====Learning device: sandbox-iosxe-recomm-1
 sandbox-iosxe-recomm-1 initialized
-
-=====Learning device: sandbox-iosxr-1
 sandbox-iosxr-1 initialized
 
-=====Collecting commands for device: sandbox-iosxe-latest-1
+=====Collecting commands for hosts...
 Connection made to sandbox-iosxe-latest-1 / 131.226.217.143:22 with prompt <Cat8000V#>
-
-=====Collecting commands for device: sandbox-iosxe-recomm-1
 Connection made to sandbox-iosxe-recomm-1 / 131.226.217.149:22 with prompt <csr1000v-1#>
+Connection made to sandbox-iosxr-1 / 131.226.217.150:22 with prompt <RP/0/RP0/CPU0:HelloSweetWorld#>
 
-=====Collecting commands for device: sandbox-iosxr-1
-Connection made to sandbox-iosxr-1 / 131.226.217.150:22 with prompt <RP/0/RP0/CPU0:MAITLAND-PEER#>
 
-=====Processing output of device: sandbox-iosxe-latest-1
+=====Processing output of hosts...
+Processing: sandbox-iosxe-latest-1
+Processing: sandbox-iosxe-recomm-1
+Processing: sandbox-iosxr-1
 
-=====Processing output of device: sandbox-iosxe-recomm-1
+COMPLETE with command processing - Final influx write line output is:
+inventory,device=sandbox-iosxe-latest-1,hostname=Cat8000V uptime="1 hour, 4 minutes"
+inventory,device=sandbox-iosxe-recomm-1,hostname=csr1000v-1 uptime="1 day, 5 hours, 8 minutes"
+inventory,device=sandbox-iosxr-1,hostname=System uptime="4 days 1 hour 5 minutes"
 
-=====Processing output of device: sandbox-iosxr-1
-Final influx write line output is:
-inventory,device=sandbox-iosxe-latest-1,hostname=Cat8000V uptime="3 minutes"
-inventory,device=sandbox-iosxe-recomm-1,hostname=csr1000v-1 uptime="6 hours, 44 minutes"
-inventory,device=sandbox-iosxr-1,hostname=System uptime="3 days 2 hours 41 minutes"
-
-204 - No Content
+204 - No Content -
 Good data push to InfluxDB
 
-Finished at: Thu Jul  6 13:46:26 2023
-Execution time in seconds: 4.226
+Finished at: Fri Jul  7 16:01:40 2023
+Execution time in seconds: 4.138
 
-Running a sleep loop.
+Waiting 300 seconds until next poll.
 ```
+
+Use CONTROL-C to break the execution, if you wish to stop the periodic polling.
 
 <!-- ROADMAP -->
 ## Roadmap
 
 - [ ] Allow the use of SSH keys
-- [ ] Feature 2
+- [ ] Enhanced Threading for larger environments
 - [ ] Feature 3
     - [ ] Nested Feature
 
@@ -377,9 +369,7 @@ Distributed under the Cisco Sample Code License, Version 1.1 License. See [LICEN
 <!-- ACKNOWLEDGMENTS -->
 ## Acknowledgments
 
-* []()
-* []()
-* []()
+* [Mel Delgado](https://developer.cisco.com/people/mel-delgado/)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
