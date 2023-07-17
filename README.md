@@ -376,6 +376,8 @@ Distributed under the Cisco Sample Code License, Version 1.1 License. See [LICEN
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
+[![published](https://static.production.devnetcloud.com/codeexchange/assets/images/devnet-published.svg)](https://developer.cisco.com/codeexchange/github/repo/jasoncdavis/SSH2Influx)
+
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
