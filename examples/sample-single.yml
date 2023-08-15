@@ -26,6 +26,12 @@ inventory:
     - host: sandbox-iosxe-latest-1
     - host: sandbox-iosxe-recomm-1
     - host: sandbox-iosxr-1
+    - host: sandbox-nxos-mgmt
+      # Need a host-specific version for NX-OS devices with
+      # different 'show version' output related to uptime
+      commands:
+        - cmd: show ver
+          parsespec: 102
 
   groupcommands:
     - cmd: show version
@@ -43,3 +49,11 @@ parsespecs:
     match2: uptime
     match2keytype: field
     match2valuetype: string
+  - parsespec: 102
+    measurement: inventory
+    matchtype: single
+    regex: >-
+      uptime is (.*econd\(s\))
+    match1: uptime
+    match1keytype: field
+    match1valuetype: string
