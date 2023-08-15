@@ -54,3 +54,11 @@ device_inventory:
     alias: sandbox-iosxr-1
     username: admin
     password: C1sco12345
+
+  # The following DevNet Sandbox device may have credentials that change
+  # check https://devnetsandbox.cisco.com/RM/Diagram/Index/dae38dd8-e8ee-4d7c-a21c-6036bed7a804?diagramType=Topology
+  # or google search 'cisco devnet sandbox ios xr programmability always on'
+  - mgmt_hostnameip: sbx-nxos-mgmt.cisco.com
+    alias: sandbox-nxos-mgmt
+    username: admin
+    password: Admin_1234!

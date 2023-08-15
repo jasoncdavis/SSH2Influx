@@ -26,7 +26,7 @@
   </p>
 </div>
 
-[![SSH2Influx Background and Demo](https://i9.ytimg.com/vi_webp/o_J-bQHChCQ/mqdefault.webp?v=64b5a095&sqp=CJjA1qUG&rs=AOn4CLBKGl1UkLFTPmMdzpp4gJrQpMtTmQ)](https://youtu.be/o_J-bQHChCQ "SSH2Influx - Background and Demo")
+[![SSH2Influx Background and Demo](https://i9.ytimg.com/vi_webp/o_J-bQHChCQ/mqdefault.webp?v=64b5a095&sqp=CJjs7qYG&rs=AOn4CLBzt5rd7wd5j6AJ7JIuKYJF9rQQPQ)](https://www.youtube.com/watch?v=zJ7aRuyGHPM "SSH2Influx - Background and Demo")
 
 
 <!-- TABLE OF CONTENTS -->
@@ -75,7 +75,7 @@ This project enables you to define what networked devices should be accessed, wh
 A "parameters" file defines the device list, commands, regex patterns and tagging/keying specifications.
 An [optionsconfig.yaml](./optionsconfig.yaml) file defines the secret credentials that should be maintained separately.
 
-You may have multiple parameters files and use them at different polling intervals to suite your needs.
+You may have multiple parameters files and use them at different polling intervals to suit your needs.
 
 This SSH2Influx project has been used for the last year at the CiscoLive NOC to collect CLI-based metrics from Wireless LAN Controllers (WLCs) and Catalyst 7/9k switches.  It has recently been enhanced to also support Linux end-points, such as Ubuntu VMs.
 
@@ -151,7 +151,7 @@ After installation we focus on setting up the necessary project files.  Two main
 
 * *parameters.yaml*
   
-  This file can be renamed to suite your preference as the filename is passed as a command-line argument to the execution of SSH2Python.py.  It is in YAML format and contains non-confidential information about the job inventory, which may be a smaller subset of the main inventory in [optionsconfig.yaml](./optionsconfig.yaml).  It also defines an optional Influx server reference, so different job specifications can have different target Influx servers for storage. The regular expression matching patterns and tagging criteria for [Influx line protocol](https://docs.influxdata.com/influxdb/v2.7/reference/syntax/line-protocol/) also goes in this file. Examples for this file are in [examples/](./examples/) 
+  This file can be renamed to suit your preference as the filename is passed as a command-line argument to the execution of SSH2Python.py.  It is in YAML format and contains non-confidential information about the job inventory, which may be a smaller subset of the main inventory in [optionsconfig.yaml](./optionsconfig.yaml).  It also defines an optional Influx server reference, so different job specifications can have different target Influx servers for storage. The regular expression matching patterns and tagging criteria for [Influx line protocol](https://docs.influxdata.com/influxdb/v2.7/reference/syntax/line-protocol/) also goes in this file. Examples for this file are in [examples/](./examples/) 
 
 
 ### Influx Line Protocol
@@ -320,9 +320,8 @@ Use CONTROL-C to break the execution, if you wish to stop the periodic polling.
 ## Roadmap
 
 - [ ] Allow the use of SSH keys
-- [ ] Enhanced Threading for larger environments
-- [ ] Feature 3
-    - [ ] Nested Feature
+- [x] Enhanced Threading for larger environments (added in version 8 2023/08/15)
+- [ ] Enhanced error handling
 
 See the [open issues](https://github.com/jasoncdavis/SSH2Influx/issues) for a full list of proposed features (and known issues).
 
