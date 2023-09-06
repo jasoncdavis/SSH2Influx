@@ -48,10 +48,14 @@
     8 2023-0815
         Enhancements to use ThreadPoolExecutor, better prompt handling
         and NX-OS inclusion in examples/ and processing
+    9 2023-0826
+        Packaging fixups for IMPACT24
+    10  2023-0826
+        Added per param file thread parameter
 """
 
 # Credits:
-__version__ = '8'
+__version__ = '10'
 __author__ = 'Jason Davis - jadavis@cisco.com'
 __license__ = 'Cisco Sample Code License, Version 1.1 - ' \
     'https://developer.cisco.com/site/license/cisco-sample-code-license/'
@@ -69,14 +73,14 @@ import pprint
 import datetime
 import schedule
 import threading
-import GetEnv
+from common import getEnv
 import requests
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import as_completed
 import logging
 
 # Global vars
-MAX_THREADS = 10  # Number of threads to run in parallel - adjust to suit
+#MAX_THREADS = 10  # Number of threads to run in parallel - adjust to suit
 
 
 class SSHTarget:
@@ -86,25 +90,25 @@ class SSHTarget:
     def __init__(self, info):
         self.alias = info["hostalias"]
         self.mgmt = info["host"]
+        self.reachable = None
         self.username = info["username"]
         self.password = info["password"]
         self.commands = info["commands"]
         #if DEBUG: print(f'\n\n=====Learning device: {self.alias}')
         logging.debug(f'=====Learning device: {self.alias}')
-        if self.get_prompt(self.mgmt, 
-                           self.username, 
-                           self.password) == 'Failed':
+        presult = self.get_prompt(self.mgmt, self.username, self.password)
+        if presult == 'Failed':
             self.server_version, self.prompt = ('Undefined', 'Undefined')
+            self.reachable = False
         else:
-            self.server_version, self.prompt = self.get_prompt(self.mgmt,
-                self.username,
-                self.password)
-        print(f'{self.alias} initialized')
-        #if DEBUG: print(f'prompt is [{self.prompt}]\n'
-        #      f'SSH server type is [{self.server_version}]')
-        logging.debug(f'prompt is [{self.prompt}]\n'
-              f'SSH server type is [{self.server_version}]')
-        #if DEBUG: print(self)
+            self.server_version, self.prompt = presult[0], presult[1]
+            self.reachable = True
+        #print(self.server_version, self.prompt)
+        if self.reachable:
+            print(f'{self.alias} initialized')
+            logging.debug(f'prompt is [{self.prompt}]\n'
+                          f'SSH server type is [{self.server_version}]')
+
 
     def __str__(self):
         return str(self.__class__) + ": " + str(self.__dict__)
@@ -116,7 +120,8 @@ class SSHTarget:
         async with asyncssh.connect(device, username=username,
                                     password=password,
                                     client_keys=None,
-                                    known_hosts=None) as conn:
+                                    known_hosts=None,
+                                    connect_timeout=10) as conn:
             server_version = conn.get_extra_info(name='server_version')
             #if DEBUG: print(f'DEBUG: Socket connection info:\n'
             #                f'{conn.get_extra_info("socket")}'
@@ -125,7 +130,8 @@ class SSHTarget:
                           f'{conn.get_extra_info("socket")}\n'
                           f'server version: {server_version}')
             
-            if 'Cisco' in server_version or 'PKIX' in server_version:
+            if 'Cisco' in server_version or 'PKIX' in server_version or \
+                'SSH-2.0-OpenSSH' in server_version:
                 # Yeah - got a Cisco device
                 # Initial list of common prompt delimiters/separators;
                 # we use generic ones until we learn the device-specific
@@ -157,7 +163,7 @@ class SSHTarget:
             return asyncio.run(self._get_prompt(device, username,
                                                 password))
         except (OSError, asyncssh.Error) as exc:
-            print(f'SSH connection failed to {device}')
+            print(f'SSH connection failed in get_prompt to {device}')
             #sys.exit('SSH connection failed: ' + str(exc))
             return ('Failed')
 
@@ -165,68 +171,71 @@ class SSHTarget:
         async with asyncssh.connect(self.mgmt, username=self.username,
                                     password=self.password,
                                     client_keys=None,
-                                    known_hosts=None) as conn:
+                                    known_hosts=None,
+                                    connect_timeout=10) as conn:
             print(f'Connection made to {self.alias} / '
                   f'{conn.get_extra_info("peername")[0]}:'
                   f'{conn.get_extra_info("peername")[1]} with prompt '
                   f'<{self.prompt}>')
-            result = ''
             process = await conn.create_process(request_pty='force',
                                                 term_type="vt100")
-            process.stdin.write("\n")
+            result = ''
             try:
                 result += await asyncio.wait_for(
                             process.stdout.readuntil(self.prompt),
-                            timeout=10)
+                            timeout=5)
             except Exception as e:
-                print(f'Prompt timeout step {e}')
-            #if DEBUG: print(f'Session prompt output: [{result}]')
-            logging.debug(f'Session prompt output: [{result}]')
-
+                print(f'Prompt timeout for header with error:\n    {e}')
+            #print(f'Login session header/output: [{result}]')
+            logging.debug(f'Login session header/output: [{result}]')
             if 'Cisco' in self.server_version or 'PKIX' in self.server_version:
                 # Prep env with 'term len 0'
                 command = 'terminal length 0'
-                #if DEBUG: print(f'Working command - [{command}]')
-                logging.debug(f'Working command - [{command}]')
-                await asyncio.wait_for(process.stdout.readuntil(self.prompt),
-                                       timeout=5)
-                process.stdin.write(command + "\n")
-                process.stdin.write("\n")
+                logging.debug(f'Working setup command - [{command}]')
+                process.stdin.write(command + '\n')
+                logging.debug(f'Sent - [{command}]')
+                logging.debug(f'Waiting for prompt [{self.prompt}] for {self.alias}')
+                time.sleep(1)
                 result = ''
                 try:
                     result += await asyncio.wait_for(
-                                process.stdout.readuntil(self.prompt),
-                                timeout=10)
+                        process.stdout.readuntil(self.prompt),
+                        timeout=5)
                 except Exception as e:
                     print(f'prompt timeout step {e}')
 
-                #if DEBUG: print(f'Command [{command}] output:\n[{result}]')
-                logging.debug(f'Command [{command}] output:\n[{result}]')
+                #print(f'tl0 command [{command}] output:\n[{result}]')
 
+                logging.debug(f'tl0 command [{command}] output:\n[{result}]')
+                result = ''
+                #print('COMPLETE TERM LEN 0 injection')
+            
             # Start specific command collection
             output_records = []
-            #if DEBUG: print(f'DEBUG: Commands to execute are:\n{self.commands}')
             logging.debug(f'Commands to execute are:\n{self.commands}')
             for item in self.commands:
-                command=item['cmd']
-                parsespec=item['parsespec']
+                command = item['cmd']
+                parsespec = item['parsespec']
                 #if DEBUG: print(f'DEBUG: Working command - <{command}> '
                 #                f'and parsespec <{parsespec}>')
-                logging.debug(f'Working command - <{command}> '
+                logging.debug(f'Working job command - <{command}> '
                                 f'and parsespec <{parsespec}>')
-                await asyncio.wait_for(process.stdout.readuntil(self.prompt),
-                                       timeout=10)
                 process.stdin.write(command + "\n")
-                process.stdin.write("\n")
+                time.sleep(1)
+                #await asyncio.wait_for(process.stdout.readuntil(self.prompt),
+                #                       timeout=10)
+                #process.stdin.write("\n")
+                #result = ''
                 result = ''
                 try:
                     result += await asyncio.wait_for(
                                 process.stdout.readuntil(self.prompt),
-                                timeout=10)
+                                timeout=5)
                 except Exception as e:
-                    print(f'prompt timeout step {e}')
+                    print(f'prompt timeout with error:\n   {e}')
 
                 #if DEBUG: print(f'Command specific [{command}] output:\n[{result}]')
+                #print(f'Command specific [{command}] output:\n[{result}]')
                 logging.debug(f'Command specific [{command}] output:\n[{result}]')
                 output_records.append((self.alias, command, parsespec,
                                        result))
@@ -240,9 +249,9 @@ class SSHTarget:
         try:
             return asyncio.run(self._run_command())
         except Exception as exc:
-            sys.exit('SSH connection failed: ' + str(exc))
-        # except (OSError, asyncssh.Error, asyncio.exceptions.TimeoutError) as exc:
-            # sys.exit('SSH connection failed: ' + str(exc))
+            print(f'ALERT - Got an exception - [{exc}]')
+            print(f'SSH connection failed in run_commands to '
+                     f'{self.alias}: ' + str(exc))
 
 
 def get_arguments():
@@ -269,6 +278,11 @@ def get_arguments():
                         type=int,
                         help='Frequency (in seconds) to repeat '
                              'collection (default of 300 seconds)')
+    parser.add_argument('-t', '--threads', metavar='threads',
+                        default=1,
+                        type=int,
+                        help='Thread count to use with collection '
+                             '(default of 1)')
     args = parser.parse_args()
     return args
 
@@ -293,15 +307,13 @@ def get_work(workparams, devicecreds):
     groupcommands = workparams.get('groupcommands', None)
     if groupcommands == None: groupcommands = list()
     default_cred_set = workparams['credential_set']
-    default_creds = GetEnv.getparam(default_cred_set)
+    default_creds = getEnv.getparam(default_cred_set)
 
-    #if DEBUG: print(workparams['hosts'])
     logging.debug(f'Host list for processing {workparams["hosts"]}')
     worklist = []
     for item in workparams['hosts']:
         host = item.get("host")
         specificcommands = item.get("commands")
-        #if DEBUG: print(host, specificcommands)
         logging.debug(f'Working host {host} with commands {specificcommands}')
         try:
             device = [device for device in devicecreds if device['alias'] == host][0]
@@ -309,7 +321,6 @@ def get_work(workparams, devicecreds):
             print(f'WARNING: device {host} is not found in '
                   'optionsconfig.yaml - skipping')
             continue
-        #if DEBUG: print(device)
         logging.debug(f'Working device - {device}')
         username = device.get('username', default_creds["username"])
         password = device.get('password', default_creds["password"])
@@ -319,14 +330,12 @@ def get_work(workparams, devicecreds):
             commands = groupcommands
         else:
             commands = item['commands'] + groupcommands
-        # print(username, password, commands)
         worklist.append({"hostalias": host,
                          "host": mgmthostnameip,
                          "username": username,
                          "password": password,
                          "commands": commands,
                          })
-    #if DEBUG: print(worklist)
     logging.debug(f'Entire worklist is:\n{worklist}')
     return worklist
 
@@ -335,10 +344,10 @@ def get_run_specs(args):
     # Read Influx target, if needed
     altinflux = get_params(args.paramfile, "['InfluxDB']")
     if altinflux is None:
-        influxenv = GetEnv.getparam("InfluxDB")
+        influxenv = getEnv.getparam("InfluxDB")
         print(f'Using project-wide Influx server: {influxenv["alias"]}')
     else:
-        influxenv = GetEnv.getparam(altinflux)
+        influxenv = getEnv.getparam(altinflux)
         print(f'Using alternative Influx server: {influxenv["alias"]}')
 
     # Read inventory from job-specific parameters file to build work list
@@ -346,31 +355,40 @@ def get_run_specs(args):
     logging.debug(f'==Inventory specs\n{inventory}')
     # Read group parameters info from environment optionconfig.yaml to
     # map device IPs and creds
-    deviceparams = GetEnv.getparam(args.group)
+    deviceparams = getEnv.getparam(args.group)
     logging.debug(f'==Device Parameters\n{deviceparams}')
     worklist = get_work(inventory, deviceparams)
     logging.debug(f'==Work list\n{worklist}')
 
     # Do initial connections and prompt determination with devices
     print('\n=====Learning device prompts')
-    with ThreadPoolExecutor(max_workers=MAX_THREADS, 
+    with ThreadPoolExecutor(max_workers=THREADS, 
                             thread_name_prefix='DeviceLearn') as executor:
         processed_results = list(executor.map(SSHTarget, worklist))
 
     inventory = {}
-    logging.debug(f'processed results are:\n{processed_results}')
+    logging.debug(f'Processed device targets are:\n{processed_results}')
     for item in processed_results:
         logging.debug(f'{item.alias}: {item}')
         inventory[item.alias] = item
     logging.debug(inventory)
     logging.debug(f'==Inventory\n{inventory}')
 
+    reachable_devices = [device.alias for device in processed_results if device.reachable]
+    unreachable_devices = [device.alias for device in processed_results if not device.reachable]
+    
+    if len(unreachable_devices) > 0:
+        print(f'Unreachable devices {len(unreachable_devices)}\n'
+              f'{unreachable_devices}\n')
+    logging.debug(f'==Reachable Devices:\n{reachable_devices}')
+    logging.debug(f'==UNReachable Devices:\n{unreachable_devices}')
     # Read the parsing specifications file containing regex matches and
     #   influx measurement/tag/key assignments
     parse_specs = get_params(args.paramfile, '["parsespecs"]')
     logging.debug(f'== Pattern Matching Specs are:\n{parse_specs}')
 
-    return worklist, inventory, parse_specs, influxenv
+    return worklist, inventory, parse_specs, influxenv, \
+        reachable_devices, unreachable_devices
 
 
 def extract_matches(parsespecs, aggregate_output):
@@ -380,7 +398,7 @@ def extract_matches(parsespecs, aggregate_output):
 
     for device_results in aggregate_output:
         for output in device_results:
-            print(f'Processing: {output[0]}')
+            print(f'Processing: [{output[0]}]')
             logging.debug(f'Working on device <{output[0]}> '
                           f'for command <{output[1]}> '
                           f'with parsespec <{output[2]}>')
@@ -392,7 +410,7 @@ def extract_matches(parsespecs, aggregate_output):
 
             statictags = parsespec.get("statictags")
             if statictags:
-                logging.debug(f'extract_matches(iterative): Static tags are: {statictags}')
+                logging.debug(f'extract_matches: Static tags are: {statictags}')
 
                 for statictag in statictags:
                     tagname = statictag.get("tagname")
@@ -407,7 +425,13 @@ def extract_matches(parsespecs, aggregate_output):
             iterative - multiple scans over the same output
             ''' 
             if parsespec["matchtype"] == 'single':
-                x = re.search(fr'{parsespec["regex"]}', output[3])
+                logging.debug(f'Working a single matchtype')
+                logging.debug(f'regex pattern is:\n{parsespec["regex"]}')
+                logging.debug(f'output to search is:\n{output[3]}')
+
+                x = re.search(fr'{parsespec["regex"]}', output[3], 
+                              re.S | re.M)
+                logging.debug(f'Got a search result of {x}')
                 if x:
                     logging.debug(f'Matching groups -  {x.groups()}')
                     for index, item in enumerate(x.groups(), start=1):
@@ -426,6 +450,7 @@ def extract_matches(parsespecs, aggregate_output):
                     measurements.append(measurement)
 
             elif parsespec["matchtype"] == 'multiple':
+                logging.debug(f'Working a multiple matchtype')
                 logging.debug(f'regex pattern is:\n{parsespec["regex"]}')
                 logging.debug(f'output to search is:\n{output[3]}')
                 
@@ -455,19 +480,19 @@ def extract_matches(parsespecs, aggregate_output):
                               f'{pprint.pprint(measurements)}')
                             
             elif parsespec["matchtype"] == 'iterative':
+                logging.debug(f'Working an iterative matchtype')
                 measurement = [output[0], parsespec["measurement"]]
-                logging.debug(f'extract_matches(iterative): Current measurement is:'
-                              f'{pprint.pprint(measurement)}')
+                logging.debug(f'extract_matches(iterative): Current measurement is: {measurement}')
                 
                 regexmatches = parsespec["regexmatches"]
+
                 for groupspec in regexmatches:
-                    logging.debug(f'DEBUG extract_matches(iterative): '
-                                  f'Current groupspec is: {pprint.pprint(groupspec)}')
-                    
+                    logging.debug(f'DEBUG extract_matches(iterative): Current groupspec is: {groupspec}')
                     # See if we have a multimatch group - special handling
                     if "groups" in groupspec:
                         x = re.findall(fr'{groupspec["regex"]}',
-                                       output[3])
+                                       output[3],
+                                       re.S | re.M)
                         # TO-DO: Add logic for no match
                         logging.debug(f'DEBUG: group match(es) is/are:\n {x}')
                         for count, match in enumerate(x):
@@ -478,7 +503,8 @@ def extract_matches(parsespecs, aggregate_output):
                     else:
                         # Regular processing
                         x = re.search(fr'{groupspec["regex"]}', 
-                                          output[3])
+                                          output[3],
+                                          re.S | re.M)
                         if x == None:
                             print(f'WARNING: No match of [{groupspec["regex"]}] on {output[0]} - skipping')
                             continue
@@ -501,10 +527,10 @@ def assemble_influx_lp(measurements):
         measurement = item.pop(0)
         mtags = [x for x in item if x[1] == 'tag']
         mfields = [x for x in item if x[1] == 'field']
-        logging.debug(f'Tags: {mtags}\nKeys: {mfields}')
+        logging.debug(f'Tags: {mtags}\nFields: {mfields}')
         influxline = f'{measurement},device={device},'
         for mtagitem in mtags:
-            tagkey = f'{mtagitem[0]}={mtagitem[3]}'.replace(' ', '\ ')
+            tagkey = f'{mtagitem[0]}={mtagitem[3]}'.strip().replace(' ', '\ ')
             # print(f'|{tagkey}|')
             nonspacestr = re.sub(r'(\\\s){2,}', "", tagkey)
             if nonspacestr.endswith('\ '):
@@ -570,16 +596,14 @@ def main_loop(worklist, inventory, parse_specs, influxenv):
     print(f'\n=====Collecting commands for hosts on {time.ctime()}')
 
     # Refactored
-    with ThreadPoolExecutor(max_workers=MAX_THREADS, 
+    with ThreadPoolExecutor(max_workers=THREADS, 
                             thread_name_prefix='CollectCmds') as executor:
         futureresults = {executor.submit(inventory[item['hostalias']].run_commands) for item in worklist}
         for future in as_completed(futureresults):
             command_results.append(future.result())
-    #if DEBUG: print(command_results)
-    logging.debug(command_results)
-    
+    logging.debug(f'Total command_results:\n{command_results}')
+    #print(command_results)
     measurements = extract_matches(parse_specs, command_results)
-    #if DEBUG: print(measurements)
     logging.debug(measurements)
     influx_lines = assemble_influx_lp(measurements)
     print(f'\n=====COMPLETED processing - Final Influx line protocol output is:\n{influx_lines}')
@@ -590,7 +614,8 @@ def main_loop(worklist, inventory, parse_specs, influxenv):
     executionTime = (time.time() - startTime)
     print(f'Execution time in seconds: {executionTime:.3f}')
     print('==========\n')
-    print(f'\nWaiting for next polling interval [scheduled every {FREQUENCY} sec]', end='', flush=True)
+    #print(f'\nWaiting for next polling interval [scheduled every {FREQUENCY} sec]', end='', flush=True)
+    print(f'\nWaiting for next polling interval [scheduled every {FREQUENCY} sec]')
 
 
 def run_threaded(job_func, worklist, inventory, parse_specs, influxenv):
@@ -611,17 +636,25 @@ if __name__ == '__main__':
 
     DEBUG = args.debug
     FREQUENCY = args.frequency
+    THREADS = args.threads
     if DEBUG:
-        logging.basicConfig(level=logging.DEBUG, format='%(relativeCreated)6d %(threadName)s %(message)s')
+        logging.basicConfig(level=logging.DEBUG, 
+                            format='%(relativeCreated)6d %(threadName)s %(message)s')
 
     pool = ThreadPoolExecutor()
     print(f'Starting {os.path.basename(__file__)} with '
           f'parameters file "{args.paramfile}" at {time.ctime()}\n'
-          f'DEBUG mode is {DEBUG}\nThread count is {MAX_THREADS} of '
+          f'DEBUG mode is {DEBUG}\nThread count is {THREADS} of '
           f'{pool._max_workers} maximum available on this platform')
 
     # Run process manually first, then schedule per spec
-    worklist, inventory, parse_specs, influxenv = get_run_specs(args)
+    worklist, inventory, parse_specs, influxenv, reachable_devices, \
+        unreachable_devices = get_run_specs(args)
+    if len(reachable_devices) == 0:
+        sys.exit('EXITING - NO reachable devices')
+        
+    # TO-DO Add some logic to handle unreachable devices being skipped
+    #   in next process...later to be added after polling cycle for retry
     main_loop(worklist, inventory, parse_specs, influxenv)
 
     # If we're running in DEBUG mode we won't schedule repeated runs
@@ -638,9 +671,12 @@ if __name__ == '__main__':
     # periods to console so user can see continued progress
     try:
         while True:
-            print('.', end='', flush=True)
+            if FREQUENCY - schedule.idle_seconds() > 20:
+                print(f'\rNext run in {round(schedule.idle_seconds())} seconds.', end='', flush=True)
             schedule.run_pending()
             time.sleep(5)
+            #print(schedule.next_run())
+            #print(schedule.idle_seconds())
     except KeyboardInterrupt:
         print('\nUser initiated stop - shutting down...')
         try:
