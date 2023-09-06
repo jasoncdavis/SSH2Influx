@@ -47,6 +47,7 @@
   </li>
   <li><a href="#usage">Usage</a></li>
   <li><a href="#roadmap">Roadmap</a></li>
+  <li><a href="#recentenhancements">Recent Enhancements</a></li>
   <li><a href="#contributing">Contributing</a></li>
   <li><a href="#license">License</a></li>
   <li><a href="#contact">Contact</a></li>
@@ -271,11 +272,14 @@ This results in useage help of...
                            Device group from optionsconfig.yaml (default of "device_inventory")
      -f frequency, --frequency frequency
                            Frequency (in seconds) to repeat collection (default of 300 seconds)
+     -t threads, --threads threads
+                           Thread count to use with collection (default of 1)
 ```
 
 Debug mode (-p or --debug) is optional.
 Providing the parameter file is required.
 Providing the polling frequency is optional, but defaults to every 5 minutes.
+Providing the thread count is optional, but default to 1 thread.
 
 An example of usage with the provided [examples/sample-single.yaml](./examples/sample-single.yml) parameters file follows.
 
@@ -327,6 +331,13 @@ See the [open issues](https://github.com/jasoncdavis/SSH2Influx/issues) for a fu
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
+
+<!-- RECENTENHANCEMENTS -->
+## Recent Enhancements
+
+The ability to supply a thread count on the command-line was added in version 10.  If you have more than 10 devices in a similar job/parameters YAML file, it may be more efficient to use that additional feature to spread out the work.
+
+In a practical implementation at Cisco's IMPACT conference 200 Catalyst 3560CG switches had 2 commands that needed to be collected with SSH2Influx.  Using an earlier version with serial execution the process took 15 minutes to complete.  Using version 10 with 8 threads the collection took approximately 90 seconds, so threading was very effective.
 
 
 <!-- CONTRIBUTING -->
