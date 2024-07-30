@@ -1,4 +1,4 @@
-asyncssh==2.13.2
+asyncssh>=2.14.2
 certifi>=2024.07.04
 cffi==1.15.1
 charset-normalizer==3.1.0
