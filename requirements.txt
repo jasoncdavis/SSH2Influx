@@ -10,7 +10,7 @@ pycodestyle==2.10.0
 pycparser==2.21
 pyflakes==3.0.1
 PyYAML==6.0
-requests==2.31.0
+requests>=2.32.0
 schedule==1.2.0
 typing_extensions==4.7.0
 urllib3>=2.2.2
